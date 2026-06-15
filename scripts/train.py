@@ -13,15 +13,14 @@ def setup_and_train():
     with zipfile.ZipFile(zip_path, 'r') as zf:
         zf.extractall(extract_dir)
 
-    # Fix paths in data.yaml
+    # Fix paths in data.yaml (relative to yaml's directory)
     yaml_path = os.path.join(extract_dir, "data.yaml")
     with open(yaml_path, 'r') as f:
         yaml_content = f.read()
 
-    # GitHub Actions runs from repo root, adjust paths
-    yaml_content = yaml_content.replace("../train/images", "data/dataset/train/images")
-    yaml_content = yaml_content.replace("../valid/images", "data/dataset/valid/images")
-    yaml_content = yaml_content.replace("../test/images", "data/dataset/test/images")
+    yaml_content = yaml_content.replace("../train/images", "train/images")
+    yaml_content = yaml_content.replace("../valid/images", "valid/images")
+    yaml_content = yaml_content.replace("../test/images", "test/images")
 
     with open(yaml_path, 'w') as f:
         f.write(yaml_content)
