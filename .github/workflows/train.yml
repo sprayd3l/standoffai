@@ -1,0 +1,91 @@
+name: Train YOLO Standoff2
+
+on:
+  workflow_dispatch:
+    inputs:
+      epochs:
+        description: 'Training epochs'
+        required: true
+        default: '100'
+        type: string
+      imgsz:
+        description: 'Image size'
+        required: true
+        default: '640'
+        type: string
+
+  push:
+    branches: [main]
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Cache ultralytics
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/ultralytics
+          ~/.cache/torch
+        key: ${{ runner.os }}-ultralytics-${{ hashFiles('requirements.txt') }}
+
+    - name: Verify dataset
+      run: |
+        ls -la data/
+        unzip -l data/standoff.zip | head -5
+
+    - name: Train model
+      run: python scripts/train.py
+      timeout-minutes: 180
+
+    - name: Upload TFLite model
+      uses: actions/upload-artifact@v4
+      with:
+        name: standoff2-tflite
+        path: output/best.tflite
+        if-no-files-found: error
+
+    - name: Upload ONNX model
+      uses: actions/upload-artifact@v4
+      with:
+        name: standoff2-onnx
+        path: output/best.onnx
+        if-no-files-found: warn
+
+    - name: Upload PyTorch model
+      uses: actions/upload-artifact@v4
+      with:
+        name: standoff2-pytorch
+        path: output/best.pt
+        if-no-files-found: warn
+
+    - name: Upload training results
+      uses: actions/upload-artifact@v4
+      with:
+        name: training-results
+        path: |
+          runs/standoff2/
+          output/
+        if-no-files-found: warn
+
+    - name: Create Release
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: model-${{ github.run_number }}
+        name: "Model v${{ github.run_number }}"
+        files: |
+          output/best.tflite
+          output/best.onnx
+          output/best.pt
+        generate_release_notes: true
