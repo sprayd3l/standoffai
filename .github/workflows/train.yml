@@ -78,12 +78,50 @@ jobs:
           output/
         if-no-files-found: warn
 
+    - name: Print download links
+      run: |
+        echo "## ✅ Training Complete - Download Links" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Model | Format | Size |" >> $GITHUB_STEP_SUMMARY
+        echo "|-------|--------|------|" >> $GITHUB_STEP_SUMMARY
+        for f in output/*; do
+          name=$(basename "$f")
+          size=$(du -h "$f" | cut -f1)
+          ext="${name##*.}"
+          echo "| $name | $ext | $size |" >> $GITHUB_STEP_SUMMARY
+        done
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "📥 **Artifacts** (click to download):" >> $GITHUB_STEP_SUMMARY
+        echo "- [TFLite Model](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+        echo "- [All Models](https://github.com/${{ github.repository }}/releases)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "⚡ **Direct TFLite URL:**" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "https://github.com/${{ github.repository }}/releases/download/model-${{ github.run_number }}/best.tflite" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+
     - name: Create Release
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      if: github.ref == 'refs/heads/main'
       uses: softprops/action-gh-release@v2
       with:
         tag_name: model-${{ github.run_number }}
-        name: "Model v${{ github.run_number }}"
+        name: "🤖 Standoff2 AI Model v${{ github.run_number }}"
+        body: |
+          ## Standoff2 Player Detection Model
+
+          **Trained on:** ${{ github.repository }}
+          **Run:** ${{ github.run_number }}
+
+          ### Downloads
+          - [best.tflite](https://github.com/${{ github.repository }}/releases/download/model-${{ github.run_number }}/best.tflite) - TFLite (Android)
+          - [best.onnx](https://github.com/${{ github.repository }}/releases/download/model-${{ github.run_number }}/best.onnx) - ONNX
+          - [best.pt](https://github.com/${{ github.repository }}/releases/download/model-${{ github.run_number }}/best.pt) - PyTorch
+
+          ### Usage
+          ```kotlin
+          // Android TFLite
+          val interpreter = Interpreter(loadModelFile(context, "best.tflite"))
+          ```
         files: |
           output/best.tflite
           output/best.onnx
